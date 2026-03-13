@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regras FA - Buscador IA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0a0e17;
+            /* Slate escuro */
+            --surface-color: #121826;
+            --surface-hover: #1a2235;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-green: #10b981;
+            /* Verde do campo (Turf green) */
+            --accent-gold: #f59e0b;
+            /* Laranja/dourado das flags e endzone pylon */
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Padrão de fundo em grade de jarda sutil */
+            background-image:
+                linear-gradient(to right, var(--border-color) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--border-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-position: center center;
+            position: relative;
+        }
+
+        /* Iluminação sutil no topo do campo */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12), transparent 60%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 4rem 2rem;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .pill-badge {
+            display: inline-block;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        .header h1 span {
+            color: var(--accent-green);
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 3rem;
+            animation: slideUp 0.8s ease-out 0.2s both;
+        }
+
+        .search-box {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 0.75rem;
+            display: flex;
+            gap: 1rem;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .search-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-left: 1rem;
+            color: var(--text-muted);
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 1rem 0.5rem;
+            font-size: 1.15rem;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        input::placeholder {
+            color: #475569;
+        }
+
+        button {
+            background: var(--accent-green);
+            color: #000;
+            border: none;
+            border-radius: 16px;
+            padding: 0 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: #34d399;
+            /* Verde mais vibrante */
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px -10px var(--accent-green);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .results {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .results.active {
+            display: flex;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .results-header h3 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .result-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            background: var(--surface-hover);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-green);
+        }
+
+        .result-card h4 {
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-card p {
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .score-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            display: inline-flex;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .score-bar {
+            width: 60px;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: var(--accent-green);
+            border-radius: 3px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem 0;
+        }
+
+        .pulse-loader {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .pulse-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        .pulse-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .pulse-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 4rem;
+            font-size: 0.85rem;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* SVG Icons Helpers */
+        .icon {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+
+            <h1>Regras de <span>Futebol Americano</span></h1>
+            <p>Faça uma pergunta e nossa inteligência artificial encontrará os trechos mais precisos no livro de regras
+                oficial.</p>
+        </div>
+
+        <div class="search-wrapper">
+            <div class="search-box">
+                <div class="search-icon">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </div>
+                <input type="text" id="questionInput" placeholder="Ex: O que é uma penalidade de holding?" autofocus
+                    autocomplete="off">
+                <button id="searchButton" onclick="handleSearch()">
+                    Pesquisar
+                    <svg class="icon" viewBox="0 0 24 24" style="width: 18px; height: 18px;">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingState">
+            <div class="pulse-loader">
+                <div class="pulse-dot"></div>
+                <div class="pulse-dot"></div>
+                <div class="pulse-dot"></div>
+            </div>
+            <p style="color: var(--text-muted);">Consultando a base de dados vetorial...</p>
+        </div>
+
+        <div class="results" id="resultsContainer">
+            <div class="results-header">
+                <h3 id="resultsTitle">Resultados Encontrados</h3>
+            </div>
+            <div id="resultsList"></div>
+        </div>
+
+        <div class="footer-note">
+            <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            Baseado no Livro de Regras da Federação Brasileira (2019)
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('questionInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+
+        function handleSearch() {
+            const inputElement = document.getElementById('questionInput');
+            const question = inputElement.value.trim();
+            const resultsContainer = document.getElementById('resultsContainer');
+            const loadingState = document.getElementById('loadingState');
+            const resultsList = document.getElementById('resultsList');
+            const resultsTitle = document.getElementById('resultsTitle');
+
+            if (!question) {
+                inputElement.parentElement.style.transform = 'translateX(-10px)';
+                setTimeout(() => inputElement.parentElement.style.transform = 'translateX(10px)', 100);
+                setTimeout(() => inputElement.parentElement.style.transform = 'translateX(-10px)', 200);
+                setTimeout(() => inputElement.parentElement.style.transform = 'translateX(0)', 300);
+                return;
+            }
+
+            // Ocultar resultados anteriores e mostrar carregamento
+            resultsContainer.classList.remove('active');
+            loadingState.style.display = 'block';
+            resultsList.innerHTML = '';
+
+            fetch(`http://localhost:3001/api/search?q=${encodeURIComponent(question)}`)
+                .then(res => res.json())
+                .then(data => {
+                    loadingState.style.display = 'none';
+
+                    if (data.results && data.results.length > 0) {
+                        let html = '';
+                        resultsTitle.innerText = 'Trechos Relevantes Encontrados';
+
+                        data.results.forEach((doc, index) => {
+                            let content = doc.pageContent.replace(/\s+/g, ' ').trim();
+                            if (content.length > 600) content = content.substring(0, 600) + '...';
+
+                            let scoreValue = doc.metadata?.score ? doc.metadata.score * 100 : 0;
+                            let similarityPercentage = scoreValue > 0
+                                ? Math.round(scoreValue) + '%'
+                                : 'N/D';
+
+                            html += `
+                                <div class="result-card" style="animation: slideUp 0.5s ease-out ${index * 0.1}s both;">
+                                    <h4>
+                                        <svg class="icon" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--accent-gold);">
+                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                        </svg>
+                                        RECOMENDAÇÃO #${index + 1}
+                                    </h4>
+                                    <p>${content}</p>
+                                    <div class="score-indicator">
+                                        <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: var(--text-muted);">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                        <span>Precisão: <strong>${similarityPercentage}</strong></span>
+                                        <div class="score-bar">
+                                            <div class="score-fill" style="width: ${scoreValue}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        resultsList.innerHTML = html;
+                    } else {
+                        resultsTitle.innerText = 'Nenhum resultado';
+                        resultsList.innerHTML = `
+                            <div class="result-card">
+                                <h4 style="color: var(--text-main);">Sem correspondências</h4>
+                                <p>Não foi encontrado nenhum trecho no livro de regras que aborde diretamente a sua pesquisa. Tente usar outras palavras-chave.</p>
+                            </div>
+                        `;
+                    }
+
+                    resultsContainer.classList.add('active');
+                })
+                .catch(err => {
+                    console.error('Erro na API:', err);
+                    loadingState.style.display = 'none';
+                    resultsTitle.innerText = 'Erro na Conexão';
+                    resultsList.innerHTML = `
+                        <div class="result-card" style="border-left-color: #ef4444;">
+                            <h4 style="color: #ef4444;">Falha de Integração</h4>
+                            <p>Não foi possível conectar ao banco de dados vetorial. Confirme se o backend rodando via "npm run start" está ativo na porta 3001.</p>
+                        </div>
+                    `;
+                    resultsContainer.classList.add('active');
+                });
+        }
+    </script>
+</body>
+
+</html>
