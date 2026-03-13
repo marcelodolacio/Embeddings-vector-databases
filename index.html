@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Conhecimento IA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15), transparent 25%);
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #38bdf8, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .search-box {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        input::placeholder {
+            color: #64748b;
+        }
+
+        button {
+            background: linear-gradient(135deg, #38bdf8, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px var(--accent-color);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .results {
+            margin-top: 2rem;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .results.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border-left: 4px solid var(--accent-color);
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .result-card h3 {
+            color: #e2e8f0;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .result-card p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .result-meta {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Ambient background glow */
+        .ambient-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--accent-color);
+            filter: blur(150px);
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-glow" id="glow"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Pesquisa de Regras de Futebol Americano</h1>
+            <p>Faça uma pergunta e a inteligência artificial encontrará os trechos mais relevantes do seu documento
+                sobre regras de Futebol Americano.</p>
+            <br>
+            <p style="font-size: 0.8rem;">OBS: O documento usado no treinamento foi o livro de regras de futebol
+                americano do ano de 2019,
+                produzido pela Federação Brasileira. </p>
+        </div>
+
+        <div class="search-box">
+            <div class="input-group">
+                <input type="text" id="questionInput" placeholder="Ex: O que são tensores e como são representados?"
+                    autofocus autocomplete="off">
+                <button id="searchButton" onclick="handleSearch()">Buscar</button>
+            </div>
+
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <p style="margin-top: 1rem; color: var(--text-muted);">Analisando o espaço vetorial...</p>
+            </div>
+
+            <div class="results" id="resultsContainer">
+                <h3 style="margin-bottom: 1rem; color: #f8fafc;">Resultados para sua busca:</h3>
+                <div id="resultsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Efeito base que o cursor move levemente o brilho do fundo para dar mais vida
+        document.addEventListener('mousemove', (e) => {
+            const glow = document.getElementById('glow');
+            const x = e.clientX;
+            const y = e.clientY;
+            glow.style.left = `${x - 150}px`;
+            glow.style.top = `${y - 150}px`;
+        });
+
+        // Permitir "Enter" para buscar
+        document.getElementById('questionInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+
+        function handleSearch() {
+            const inputElement = document.getElementById('questionInput');
+            const question = inputElement.value.trim();
+            const resultsContainer = document.getElementById('resultsContainer');
+            const loadingState = document.getElementById('loadingState');
+            const resultsList = document.getElementById('resultsList');
+
+            if (!question) {
+                // Efeito vibratório se vazio
+                inputElement.style.transform = 'translateX(-5px)';
+                setTimeout(() => inputElement.style.transform = 'translateX(5px)', 100);
+                setTimeout(() => inputElement.style.transform = 'translateX(-5px)', 200);
+                setTimeout(() => inputElement.style.transform = 'translateX(0)', 300);
+                return;
+            }
+
+            // Ocultar resultados anteriores e mostrar loading simulando requisição
+            resultsContainer.classList.remove('active');
+            loadingState.style.display = 'block';
+            resultsList.innerHTML = ''; // limpar
+
+            // Consumir o endpoint real do Node.js (Neo4j)
+            fetch(`http://localhost:3001/api/search?q=${encodeURIComponent(question)}`)
+                .then(res => res.json())
+                .then(data => {
+                    loadingState.style.display = 'none';
+
+                    if (data.results && data.results.length > 0) {
+                        let html = '';
+                        // Monta o visual com as respostas trazidas do banco vetorial
+                        data.results.forEach((doc, index) => {
+                            // Limpeza leve e corte de texto no conteúdo recebido
+                            let content = doc.pageContent.replace(/\s+/g, ' ').trim();
+                            if (content.length > 500) content = content.substring(0, 500) + '...';
+
+                            let similarityPercentage = doc.metadata?.score
+                                ? Math.round(doc.metadata.score * 100) + '%'
+                                : 'Score indisponível';
+
+                            html += `
+                                <div class="result-card">
+                                    <h3>Resultado Relevante ${index + 1}</h3>
+                                    <p>${content}</p>
+                                    <span class="result-meta">Similaridade: ${similarityPercentage}</span>
+                                </div>
+                            `;
+                        });
+                        resultsList.innerHTML = html;
+                    } else {
+                        resultsList.innerHTML = `
+                            <div class="result-card">
+                                <h3>Nenhum resultado</h3>
+                                <p>Não foi encontrado nenhum trecho com alta similaridade à sua busca no escopo vetorial.</p>
+                            </div>
+                        `;
+                    }
+
+                    // Mostrar a caixa
+                    resultsContainer.classList.add('active');
+                })
+                .catch(err => {
+                    console.error('Erro na API:', err);
+                    loadingState.style.display = 'none';
+                    resultsList.innerHTML = `
+                        <div class="result-card" style="border-left-color: #ef4444;">
+                            <h3>Erro de conexão</h3>
+                            <p>Não foi possível buscar na IA. Certifique-se de que o backend "npm run start" está rodando em http://localhost:3001.</p>
+                        </div>
+                    `;
+                    resultsContainer.classList.add('active');
+                });
+        }
+    </script>
+</body>
+
+</html>
